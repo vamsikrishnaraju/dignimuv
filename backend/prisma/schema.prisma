@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  role      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  expenses  Expense[]
+}
+
+model Booking {
+  id              String   @id @default(uuid())
+  patientName     String
+  phone           String
+  phoneVerified   Boolean  @default(false)
+  fromAddress     String
+  fromLatitude    Float?
+  fromLongitude   Float?
+  toAddress       String
+  toLatitude      Float?
+  toLongitude     Float?
+  fromDate        DateTime
+  toDate          DateTime?
+  time            String
+  status          String   @default("pending") // pending, confirmed, assigned, in_progress, completed, cancelled
+  notes           String?
+  assignedAmbulanceId String?
+  assignedDriverId    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  assignedAmbulance Ambulance? @relation(fields: [assignedAmbulanceId], references: [id])
+  assignedDriver    Driver?    @relation(fields: [assignedDriverId], references: [id])
+  events           BookingEvent[]
+}
+
+model BookingEvent {
+  id        String   @id @default(uuid())
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+  bookingId String
+  type      String
+  payload   Json?
+  createdAt DateTime @default(now())
+}
+
+model Driver {
+  id          String   @id @default(uuid())
+  name        String
+  phone       String   @unique
+  email       String   @unique
+  licenseNo   String   @unique
+  address     String
+  aadharNo    String   @unique
+  status      String   @default("available")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assignments Assignment[]
+  bookings    Booking[]
+}
+
+model Ambulance {
+  id              String   @id @default(uuid())
+  modelName       String
+  type            String
+  vehicleNo       String   @unique
+  equipmentDetails String
+  status          String   @default("available")
+  currentLatitude Float?
+  currentLongitude Float?
+  lastLocationUpdate DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  assignments     Assignment[]
+  bookings        Booking[]
+  locationHistory AmbulanceLocation[]
+}
+
+model Assignment {
+  id          String    @id @default(uuid())
+  date        DateTime  @db.Date
+  shift       String    // "morning", "afternoon", "night"
+  driverId    String
+  ambulanceId String
+  status      String    @default("scheduled") // "scheduled", "completed", "cancelled"
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  ambulance   Ambulance @relation(fields: [ambulanceId], references: [id], onDelete: Cascade)
+  
+  @@unique([date, shift, ambulanceId])
+  @@index([date])
+  @@index([driverId])
+  @@index([ambulanceId])
+}
+
+model OtpVerification {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  otp       String
+  verified  Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AmbulanceLocation {
+  id          String    @id @default(uuid())
+  ambulanceId String
+  latitude    Float
+  longitude   Float
+  speed       Float?
+  heading     Float?
+  accuracy    Float?
+  timestamp   DateTime  @default(now())
+  
+  ambulance   Ambulance @relation(fields: [ambulanceId], references: [id], onDelete: Cascade)
+  
+  @@index([ambulanceId])
+  @@index([timestamp])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  category    String   // "maintenance", "fuel", "equipment", "driver", "insurance", "other"
+  amount      Float
+  currency    String   @default("INR")
+  date        DateTime @db.Date
+  vendor      String?
+  receiptUrl  String?
+  status      String   @default("pending") // "pending", "approved", "rejected"
+  approvedBy  String?
+  approvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  createdBy   String
+  admin       Admin    @relation(fields: [createdBy], references: [id])
+  
+  @@index([category])
+  @@index([date])
+  @@index([status])
+}
