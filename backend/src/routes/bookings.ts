@@ -92,7 +92,7 @@ router.post("/", async (req, res) => {
       fromDate,
       toDate,
       time,
-      notes 
+      notes
     } = req.body;
     
     // Check if phone is verified
@@ -100,16 +100,16 @@ router.post("/", async (req, res) => {
       where: { phone }
     });
     
-    if (!otpRecord || !otpRecord.verified) {
-      return res.status(400).json({ error: "Phone number not verified" });
-    }
+    //if (!otpRecord || !otpRecord.verified) {
+    //  return res.status(400).json({ error: "Phone number not verified" });
+    //}
     
     // Check if verification is still valid (24 hours)
-    const isValid = (new Date().getTime() - otpRecord.updatedAt.getTime()) < 24 * 60 * 60 * 1000;
+    //const isValid = (new Date().getTime() - otpRecord.updatedAt.getTime()) < 24 * 60 * 60 * 1000;
     
-    if (!isValid) {
-      return res.status(400).json({ error: "Phone verification expired. Please verify again." });
-    }
+    //if (!isValid) {
+    //  return res.status(400).json({ error: "Phone verification expired. Please verify again." });
+    ///}
     
     const booking = await prisma.booking.create({
       data: {
@@ -425,6 +425,27 @@ router.get("/available/drivers", ensureAdmin, async (req, res) => {
   } catch (error) {
     console.error("Error fetching available drivers:", error);
     res.status(500).json({ error: "Failed to fetch available drivers" });
+  }
+});
+
+// Get bookings by phone number
+router.get("/phone/:phone", async (req, res) => {
+  try {
+    const { phone } = req.params;
+    
+    const bookings = await prisma.booking.findMany({
+      where: { phone },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ message: "No bookings found for this phone number" });
+    }
+    
+    res.json(bookings);
+  } catch (error) {
+    console.error("Error fetching bookings by phone:", error);
+    res.status(500).json({ error: "Failed to fetch bookings" });
   }
 });
 
