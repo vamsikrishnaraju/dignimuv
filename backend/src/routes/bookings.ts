@@ -449,4 +449,26 @@ router.get("/phone/:phone", async (req, res) => {
   }
 });
 
+// Get bookings by driver ID
+router.get("/driver/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    
+    const bookings = await prisma.booking.findMany({
+      where: { assignedDriverId: id },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    if (bookings.length === 0) {
+      return res.status(404).json({ message: "No bookings found for this driver ID" });
+    }
+    
+    res.json(bookings);
+  } catch (error) {
+    console.error("Error fetching bookings by driver ID:", error);
+    res.status(500).json({ error: "Failed to fetch bookings" });
+  }
+});
+
 export default router;

@@ -37,6 +37,25 @@ router.get("/:id", ensureAdmin, async (req, res) => {
   }
 });
 
+// Get single driver by phone number
+router.get("/phone/:phonenumber", ensureAdmin, async (req, res) => {
+  try {
+    console.log(req.params.phonenumber);
+    const driver = await prisma.driver.findUnique({
+      where: { phone: req.params.phonenumber }
+    });
+    console.log(driver);
+    if (!driver) {
+      return res.status(404).json({ error: "Driver not found" });
+    }
+    
+    res.json(driver);
+  } catch (error) {
+    console.error("Error fetching driver:", error);
+    res.status(500).json({ error: "Failed to fetch driver" });
+  }
+});
+
 // Create new driver
 router.post("/", ensureAdmin, async (req, res) => {
   try {
